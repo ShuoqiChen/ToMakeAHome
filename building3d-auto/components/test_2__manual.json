@@ -1,0 +1,99 @@
+{
+  "units": "meters-ish",
+  "style": "storybook townhouse",
+  "atmosphere": "warm afternoon",
+  "palette": {
+    "wallFront": "#c8a070",
+    "wallSide": "#a97b54",
+    "roof": "#b14c2e",
+    "trim": "#efe2cf",
+    "ground": "#b99b6d",
+    "accent": "#5b412d"
+  },
+  "camera": {
+    "size": 12,
+    "position": {
+      "x": 22,
+      "y": 17,
+      "z": 22
+    },
+    "lookAt": {
+      "x": 0,
+      "y": 4,
+      "z": 0
+    }
+  },
+  "lighting": {
+    "ambientColor": "#ffecc0",
+    "ambientIntensity": 1,
+    "sunColor": "#ffe090",
+    "sunIntensity": 2,
+    "sunPosition": {
+      "x": 16,
+      "y": 28,
+      "z": 10
+    }
+  },
+  "components": [
+    {
+      "type": "box",
+      "label": "ground",
+      "color": "#b99b6d",
+      "position": {
+        "x": 0,
+        "y": -0.15,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 18,
+        "h": 0.3,
+        "d": 18
+      }
+    },
+    {
+      "type": "box",
+      "label": "main-mass",
+      "color": "#c8a070",
+      "position": {
+        "x": 0,
+        "y": 3.1,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 7.2,
+        "h": 6.2,
+        "d": 6.2
+      }
+    },
+    {
+      "type": "prism",
+      "label": "roof",
+      "color": "#b14c2e",
+      "position": {
+        "x": 0,
+        "y": 6.7,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 8.2,
+        "h": 2.2,
+        "d": 7.2
+      }
+    }
+  ]
+}

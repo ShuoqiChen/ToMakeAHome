@@ -1,0 +1,32 @@
+{
+  "style": "storybook townhouse",
+  "floors": 2,
+  "palette": {
+    "wallFront": "#c8a070",
+    "wallSide": "#a97b54",
+    "roof": "#b14c2e",
+    "trim": "#efe2cf",
+    "ground": "#b99b6d"
+  },
+  "roofType": "gable",
+  "roofColor": "#b14c2e",
+  "massing": {
+    "footprintWidth": 8,
+    "footprintDepth": 7,
+    "height": 8
+  },
+  "features": {
+    "hasBalcony": false,
+    "hasAwning": false,
+    "windowStyle": "rectangular",
+    "doorColor": "#5b412d"
+  },
+  "props": [
+    "plant"
+  ],
+  "atmosphere": "warm afternoon",
+  "notes": [
+    "simple facade",
+    "front-facing roof"
+  ]
+}

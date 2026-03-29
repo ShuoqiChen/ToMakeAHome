@@ -1,0 +1,453 @@
+{
+  "units": "meters-ish",
+  "style": "Urban Residential",
+  "atmosphere": "warm afternoon",
+  "palette": {
+    "wallFront": "#e8c880",
+    "wallSide": "#c8a060",
+    "roof": "#d05030",
+    "trim": "#efe2cf",
+    "ground": "#e8d8b8",
+    "accent": "#607080"
+  },
+  "camera": {
+    "size": 12,
+    "position": {
+      "x": 22,
+      "y": 17,
+      "z": 22
+    },
+    "lookAt": {
+      "x": 0,
+      "y": 4,
+      "z": 0
+    }
+  },
+  "lighting": {
+    "ambientColor": "#ffecc0",
+    "ambientIntensity": 1,
+    "sunColor": "#ffe090",
+    "sunIntensity": 2,
+    "sunPosition": {
+      "x": 16,
+      "y": 28,
+      "z": 10
+    }
+  },
+  "components": [
+    {
+      "type": "box",
+      "label": "ground",
+      "color": "#e8d8b8",
+      "position": {
+        "x": 0,
+        "y": -0.05,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 30,
+        "h": 0.1,
+        "d": 30
+      }
+    },
+    {
+      "type": "box",
+      "label": "main-mass",
+      "color": "#e8c880",
+      "position": {
+        "x": 0,
+        "y": 3.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 8,
+        "h": 7,
+        "d": 7
+      }
+    },
+    {
+      "type": "prism",
+      "label": "gable-roof",
+      "color": "#d05030",
+      "position": {
+        "x": 0,
+        "y": 8,
+        "z": 0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 8.5,
+        "h": 2,
+        "d": 7.5
+      }
+    },
+    {
+      "type": "box",
+      "label": "front-door",
+      "color": "#405040",
+      "position": {
+        "x": 0,
+        "y": 1.25,
+        "z": 3.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.5,
+        "h": 2.5,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-gf-left",
+      "color": "#a0c0e0",
+      "position": {
+        "x": -2.5,
+        "y": 2,
+        "z": 3.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-gf-right",
+      "color": "#a0c0e0",
+      "position": {
+        "x": 2.5,
+        "y": 2,
+        "z": 3.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-ff-left",
+      "color": "#a0c0e0",
+      "position": {
+        "x": -2.5,
+        "y": 5.5,
+        "z": 3.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-ff-right",
+      "color": "#a0c0e0",
+      "position": {
+        "x": 2.5,
+        "y": 5.5,
+        "z": 3.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-side-gf",
+      "color": "#a0c0e0",
+      "position": {
+        "x": 4.05,
+        "y": 2,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "window-side-ff",
+      "color": "#a0c0e0",
+      "position": {
+        "x": 4.05,
+        "y": 5.5,
+        "z": -1.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 90,
+        "z": 0
+      },
+      "size": {
+        "w": 1.2,
+        "h": 1.8,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "balcony-floor",
+      "color": "#efe2cf",
+      "position": {
+        "x": 0,
+        "y": 4.5,
+        "z": 4.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 4,
+        "h": 0.2,
+        "d": 1.5
+      }
+    },
+    {
+      "type": "box",
+      "label": "balcony-railing-front",
+      "color": "#efe2cf",
+      "position": {
+        "x": 0,
+        "y": 5.1,
+        "z": 4.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 4.2,
+        "h": 1,
+        "d": 0.1
+      }
+    },
+    {
+      "type": "box",
+      "label": "balcony-railing-left",
+      "color": "#efe2cf",
+      "position": {
+        "x": -2.1,
+        "y": 5.1,
+        "z": 4.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 0.1,
+        "h": 1,
+        "d": 1.5
+      }
+    },
+    {
+      "type": "box",
+      "label": "balcony-railing-right",
+      "color": "#efe2cf",
+      "position": {
+        "x": 2.1,
+        "y": 5.1,
+        "z": 4.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 0.1,
+        "h": 1,
+        "d": 1.5
+      }
+    },
+    {
+      "type": "box",
+      "label": "awning",
+      "color": "#607080",
+      "position": {
+        "x": 0,
+        "y": 3.5,
+        "z": 4.05
+      },
+      "rotation": {
+        "x": -15,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 2,
+        "h": 0.1,
+        "d": 1
+      }
+    },
+    {
+      "type": "box",
+      "label": "chimney-base",
+      "color": "#c8a060",
+      "position": {
+        "x": 3,
+        "y": 8,
+        "z": 2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1,
+        "h": 2,
+        "d": 1
+      }
+    },
+    {
+      "type": "box",
+      "label": "chimney-top",
+      "color": "#efe2cf",
+      "position": {
+        "x": 3,
+        "y": 9.1,
+        "z": 2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "size": {
+        "w": 1.1,
+        "h": 0.2,
+        "d": 1.1
+      }
+    },
+    {
+      "type": "cylinder",
+      "label": "plant-trunk",
+      "color": "#806040",
+      "position": {
+        "x": -5,
+        "y": 0.75,
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "radiusTop": 0.5,
+      "radiusBottom": 0.5,
+      "height": 1.2,
+      "segments": 12
+    },
+    {
+      "type": "sphere",
+      "label": "plant-foliage",
+      "color": "#609040",
+      "position": {
+        "x": -5,
+        "y": 2.5,
+        "z": 5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "radius": 0.8,
+      "latSteps": 6,
+      "lonSteps": 10
+    },
+    {
+      "type": "cylinder",
+      "label": "water-tank",
+      "color": "#607080",
+      "position": {
+        "x": -2,
+        "y": 10,
+        "z": -2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "radiusTop": 0.5,
+      "radiusBottom": 0.5,
+      "height": 1.2,
+      "segments": 12
+    },
+    {
+      "type": "sphere",
+      "label": "satellite-dish",
+      "color": "#607080",
+      "position": {
+        "x": 2,
+        "y": 9.4,
+        "z": -2
+      },
+      "rotation": {
+        "x": -45,
+        "y": 0,
+        "z": 0
+      },
+      "radius": 0.8,
+      "latSteps": 6,
+      "lonSteps": 10
+    }
+  ]
+}

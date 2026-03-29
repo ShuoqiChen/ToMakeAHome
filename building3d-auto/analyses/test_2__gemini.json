@@ -1,0 +1,42 @@
+{
+  "style": "Urban Residential",
+  "floors": 2,
+  "palette": {
+    "wallFront": "#e8c880",
+    "wallSide": "#c8a060",
+    "roof": "#d05030",
+    "trim": "#efe2cf",
+    "ground": "#e8d8b8"
+  },
+  "roofType": "gable",
+  "roofColor": "#d05030",
+  "massing": {
+    "footprintWidth": 8,
+    "footprintDepth": 7,
+    "height": 8
+  },
+  "features": {
+    "hasBalcony": true,
+    "hasAwning": true,
+    "windowStyle": "rectangular",
+    "doorColor": "#405040"
+  },
+  "props": [
+    "plant",
+    "clothesline",
+    "bicycle",
+    "water tank",
+    "satellite dish",
+    "fan",
+    "person",
+    "cat",
+    "flag"
+  ],
+  "atmosphere": "warm afternoon",
+  "notes": [
+    "multi-level structure",
+    "active outdoor spaces",
+    "dense urban living",
+    "mixed materials and textures"
+  ]
+}

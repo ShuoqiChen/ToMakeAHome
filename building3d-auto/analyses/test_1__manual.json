@@ -1,0 +1,35 @@
+{
+  "style": "rustic mediterranean",
+  "floors": 2,
+  "palette": {
+    "wallFront": "#d89a84",
+    "wallSide": "#8c6b5c",
+    "roof": "#9f5a3e",
+    "trim": "#d8c2a8",
+    "ground": "#cdb9aa"
+  },
+  "roofType": "gable",
+  "roofColor": "#9f5a3e",
+  "massing": {
+    "footprintWidth": 8,
+    "footprintDepth": 7,
+    "height": 8
+  },
+  "features": {
+    "hasBalcony": true,
+    "hasAwning": true,
+    "windowStyle": "mixed",
+    "doorColor": "#5b412d"
+  },
+  "props": [
+    "plant",
+    "bench",
+    "barrel",
+    "chimney"
+  ],
+  "atmosphere": "warm afternoon",
+  "notes": [
+    "stucco upper house with stone base",
+    "side stair and attached workshop lean-to"
+  ]
+}

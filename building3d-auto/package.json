@@ -1,0 +1,17 @@
+{
+  "name": "building3d-auto",
+  "version": "1.0.0",
+  "description": "Drop a building image → get an interactive toon-shaded 3D scene instantly",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "chokidar": "^3.6.0",
+    "express": "^4.18.0",
+    "multer": "^1.4.5-lts.1",
+    "ws": "^8.17.0"
+  }
+}

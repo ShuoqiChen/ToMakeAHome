@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Building → 3D</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:opsz,wght@9..144,300;9..144,400&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1208; --paper:#f5f0e8; --warm:#e8a028; --warm-dk:#c07818;
+  --rust:#c53020; --sage:#3a5828; --muted:#8a7860; --border:rgba(26,18,8,0.13);
+  --card:#ede8de; --log-bg:#1c1510; --log-fg:#d4c89a;
+}
+html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'DM Mono',monospace;overflow:hidden;}
+
+/* ── LAYOUT ────────────────────────────────────────────────────────────── */
+#app{display:grid;grid-template-rows:48px 1fr;grid-template-columns:240px 1fr;height:100vh;}
+
+header{
+  grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;border-bottom:1px solid var(--border);background:var(--paper);z-index:10;
+}
+header h1{font-family:'Fraunces',serif;font-size:15px;font-weight:400;letter-spacing:-0.02em;}
+header h1 span{color:var(--warm);}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.provider-wrap{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted);}
+.provider-wrap label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;}
+.provider-wrap select{
+  border:1px solid var(--border);background:var(--card);color:var(--ink);
+  border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-size:10px;
+}
+.conn{font-size:10px;display:flex;align-items:center;gap:5px;color:var(--muted);}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s;}
+.conn-dot.live{background:#5aaa50;}
+.api-badge{
+  font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid var(--border);
+  color:var(--muted);
+}
+.api-badge.on{border-color:rgba(58,88,40,0.4);color:var(--sage);background:rgba(58,88,40,0.07);}
+
+/* ── LEFT: image picker ─────────────────────────────────────────────────── */
+#left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+
+#left-head{padding:10px 12px 8px;border-bottom:1px solid var(--border);flex-shrink:0;}
+#left-head h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+
+#img-grid{
+  flex:1;overflow-y:auto;padding:8px;
+  display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;
+}
+#img-grid::-webkit-scrollbar{width:3px;}
+#img-grid::-webkit-scrollbar-thumb{background:var(--border);}
+
+.img-card{
+  border:1.5px solid var(--border);border-radius:7px;overflow:hidden;
+  cursor:pointer;transition:all .15s;position:relative;background:var(--card);
+}
+.img-card:hover{border-color:var(--warm);transform:translateY(-1px);}
+.img-card.active{border-color:var(--sage);}
+.img-card.generating{border-color:var(--warm);animation:pulse-border 1.4s ease-in-out infinite;}
+@keyframes pulse-border{0%,100%{border-color:var(--warm);}50%{border-color:var(--warm-dk);}}
+.img-card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
+.img-label{padding:4px 6px;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cache-badge{
+  position:absolute;top:4px;right:4px;
+  background:rgba(58,88,40,0.85);color:#d4e8c4;
+  font-size:8px;padding:2px 5px;border-radius:4px;display:none;
+}
+.img-card.cached .cache-badge{display:block;}
+
+.no-images{grid-column:1/-1;text-align:center;padding:24px 10px;font-size:11px;color:var(--muted);line-height:2;}
+
+/* ── RIGHT: canvas + log ────────────────────────────────────────────────── */
+#right{display:flex;flex-direction:column;overflow:hidden;position:relative;}
+
+/* Canvas area */
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#ede6d5;min-height:0;}
+#cv{display:block;width:100%;height:100%;}
+
+#empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;pointer-events:none;
+}
+#empty .big{font-size:44px;opacity:0.11;}
+#empty p{font-size:11px;color:var(--muted);text-align:center;max-width:200px;line-height:1.8;opacity:0.6;}
+
+#toolbar{position:absolute;top:10px;right:10px;display:none;gap:5px;z-index:20;}
+#toolbar.show{display:flex;}
+.tb{
+  background:rgba(26,18,8,0.72);color:var(--paper);border:none;border-radius:6px;
+  padding:4px 9px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;
+}
+.tb:hover{background:rgba(26,18,8,0.9);}
+
+#hint{
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  background:rgba(26,18,8,0.65);color:#d4b870;font-size:10px;
+  padding:4px 12px;border-radius:16px;pointer-events:none;white-space:nowrap;display:none;
+}
+#hint.show{display:block;}
+
+#code-panel{
+  position:absolute;inset:0;background:rgba(20,12,6,0.97);color:#d4c89a;
+  font-size:10px;padding:14px;overflow:auto;display:none;
+  font-family:'DM Mono',monospace;line-height:1.6;white-space:pre-wrap;z-index:10;
+}
+#code-panel.show{display:block;}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;
+  position:sticky;top:0;background:rgba(20,12,6,0.98);padding-bottom:8px;
+}
+.panel-title{font-size:11px;color:#e8c060;text-transform:uppercase;letter-spacing:.08em;}
+
+#manual-panel{
+  position:absolute;inset:0;background:rgba(20,12,6,0.98);color:#d4c89a;
+  padding:14px;overflow:auto;display:none;z-index:11;
+}
+#manual-panel.show{display:block;}
+.manual-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.manual-title{font-size:11px;color:#e8c060;text-transform:uppercase;letter-spacing:.08em;}
+.manual-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+.manual-box{display:flex;flex-direction:column;gap:6px;}
+.manual-box label{font-size:10px;color:rgba(212,200,154,0.65);}
+.manual-box textarea{
+  min-height:320px;resize:vertical;border:1px solid rgba(255,255,255,0.1);border-radius:8px;
+  background:rgba(255,255,255,0.04);color:#f4ecd8;padding:10px;font-family:'DM Mono',monospace;font-size:10px;line-height:1.5;
+}
+.manual-box textarea.readonly{min-height:220px;color:#e8d7b0;background:rgba(255,255,255,0.03);}
+.manual-actions{display:flex;gap:8px;margin-top:10px;}
+.manual-note{font-size:10px;color:rgba(212,200,154,0.45);margin-top:8px;line-height:1.6;}
+.manual-steps{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:10px;line-height:1.7;color:#f0e2bf;
+}
+.manual-steps strong{color:#e8c060;}
+
+/* ── LOG PANEL (chat window) ─────────────────────────────────────────────── */
+#log-panel{
+  height:260px;flex-shrink:0;background:var(--log-bg);
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;flex-direction:column;
+}
+#log-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;
+}
+#log-head span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:rgba(212,200,154,0.45);}
+#log-clear{background:none;border:none;color:rgba(212,200,154,0.3);font-size:9px;cursor:pointer;font-family:'DM Mono',monospace;padding:0;}
+#log-clear:hover{color:rgba(212,200,154,0.7);}
+#log-msgs{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:6px;}
+#log-msgs::-webkit-scrollbar{width:3px;}
+#log-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);}
+
+/* Message bubbles */
+.msg{display:flex;gap:8px;align-items:flex-start;animation:fadein .2s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.msg .ts{font-size:9px;color:rgba(212,200,154,0.3);flex-shrink:0;padding-top:2px;min-width:36px;}
+.msg .body{flex:1;font-size:11px;line-height:1.6;}
+
+.msg.sys  .body{color:rgba(212,200,154,0.4);}
+.msg.step .body{color:#e8c060;}
+.msg.ok   .body{color:#7ec87e;}
+.msg.er   .body{color:#e06060;}
+.msg.info .body{color:var(--log-fg);}
+
+/* Analysis card inside log */
+.analysis-card{
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+  border-radius:6px;padding:8px 10px;margin-top:4px;font-size:10px;
+  color:var(--log-fg);line-height:1.8;
+}
+.analysis-card .ac-title{font-size:11px;color:#e8c060;margin-bottom:5px;font-weight:500;}
+.analysis-card .ac-row{display:flex;justify-content:space-between;}
+.analysis-card .ac-row span{color:rgba(212,200,154,0.5);}
+.palette-dots{display:flex;gap:4px;margin-top:5px;}
+.pdot{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,0.1);}
+.props-row{margin-top:4px;color:rgba(212,200,154,0.55);font-size:9.5px;}
+
+/* Code preview in log */
+.code-preview{
+  background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);
+  border-radius:5px;padding:7px 9px;margin-top:4px;font-size:9.5px;
+  color:#8db4d8;line-height:1.6;white-space:pre-wrap;word-break:break-all;
+}
+.code-preview .code-footer{color:rgba(212,200,154,0.3);font-size:9px;margin-top:4px;}
+
+/* Spinner in log */
+.log-spinner{
+  display:inline-block;width:10px;height:10px;
+  border:1.5px solid rgba(232,192,96,0.3);border-top-color:#e8c060;
+  border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>Building <span>→</span> 3D</h1>
+    <div class="hdr-right">
+      <div class="provider-wrap">
+        <label for="provider-select">AI</label>
+        <select id="provider-select">
+          <option value="manual">Manual Paste</option>
+          <option value="gpt">ChatGPT</option>
+          <option value="gemini">Gemini</option>
+          <option value="claude">Claude</option>
+        </select>
+      </div>
+      <div class="api-badge" id="api-badge">no api key</div>
+      <div class="conn"><div class="conn-dot" id="dot"></div><span id="conn-label">connecting</span></div>
+    </div>
+  </header>
+
+  <!-- LEFT: image picker -->
+  <aside id="left">
+    <div id="left-head"><h2>Source Images</h2></div>
+    <div id="img-grid"><div class="no-images">Loading…</div></div>
+  </aside>
+
+  <!-- RIGHT: canvas + log -->
+  <div id="right">
+
+    <!-- 3D canvas -->
+    <div id="canvas-wrap">
+      <canvas id="cv"></canvas>
+      <div id="empty">
+        <div class="big">⬡</div>
+        <p>Select an image to render or generate its 3D scene</p>
+      </div>
+      <div id="toolbar">
+        <button class="tb" id="btn-reset">⟲ Reset</button>
+        <button class="tb" id="btn-view">View</button>
+        <button class="tb" id="btn-code">{ } Code</button>
+        <button class="tb" id="btn-manual">Regenerate AI</button>
+        <button class="tb" id="btn-clear-cache">Clear Cache</button>
+        <a class="tb" id="btn-obj" href="#" download style="display:none;text-decoration:none;">↓ OBJ</a>
+      </div>
+      <div id="hint">Drag to orbit · Scroll to zoom · Right-click to pan</div>
+      <div id="code-panel">
+        <div class="panel-head">
+          <div class="panel-title">Scene Code</div>
+          <button class="tb" id="btn-code-close">View Scene</button>
+        </div>
+        <pre id="code-content"></pre>
+      </div>
+      <div id="manual-panel">
+        <div class="manual-head">
+          <div class="manual-title">AI Regenerate</div>
+          <button class="tb" id="btn-manual-close">✕ Close</button>
+        </div>
+        <div class="manual-steps">
+          <strong>1.</strong> Select an image on the left.<br>
+          <strong>2.</strong> Copy the prompt from the first box below.<br>
+          <strong>3.</strong> Paste that prompt into ChatGPT with the same image attached.<br>
+          <strong>4.</strong> Paste ChatGPT's full response into the second box below.<br>
+          <strong>5.</strong> Click <strong>Build Scene</strong>.
+        </div>
+        <div class="manual-grid">
+          <div class="manual-box">
+            <label for="manual-prompt">AI Prompt to send to ChatGPT</label>
+            <textarea id="manual-prompt" class="readonly" readonly spellcheck="false"></textarea>
+          </div>
+          <div class="manual-box">
+            <label for="manual-input">Paste ChatGPT's full response here</label>
+            <textarea id="manual-input" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div class="manual-actions">
+          <button class="tb" id="btn-copy-prompt">Copy AI Prompt</button>
+          <button class="tb" id="btn-manual-build">Build Scene</button>
+          <button class="tb" id="btn-manual-fill">Load Templates</button>
+        </div>
+        <div class="manual-note">Paste either one combined response labeled `ANALYSIS_JSON` and `COMPONENTS_JSON`, or two raw JSON blocks back to back. Use <strong>Clear Cache</strong> to force a rebuild for the selected image.</div>
+      </div>
+    </div>
+
+    <!-- Chat-style log panel -->
+    <div id="log-panel">
+      <div id="log-head">
+        <span>Generation log</span>
+        <button id="log-clear">clear</button>
+      </div>
+      <div id="log-msgs"></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+var currentCode = '';
+var animId = null;
+var cachedSet = {};
+var hasApi = false;
+var activeCard = null;
+var currentObjectUrl = '';
+var currentProvider = 'gpt';
+var providerMap = {};
+var activeFilename = '';
+var activeBase = '';
+var currentPanel = 'view';
+var sceneDataCache = {};
+
+// ── LOG HELPERS ───────────────────────────────────────────────────────────
+function ts() {
+  var d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' +
+         String(d.getMinutes()).padStart(2,'0') + ':' +
+         String(d.getSeconds()).padStart(2,'0');
+}
+
+function addMsg(type, html) {
+  var el = document.getElementById('log-msgs');
+  var row = document.createElement('div');
+  row.className = 'msg ' + type;
+  row.innerHTML = '<span class="ts">' + ts() + '</span><div class="body">' + html + '</div>';
+  el.appendChild(row);
+  el.scrollTop = el.scrollHeight;
+  return row;
+}
+
+function logSys(text)  { addMsg('sys',  text); }
+function logStep(text) { addMsg('step', '<span class="log-spinner"></span>' + text); }
+function logOk(text)   { addMsg('ok',   '✓ ' + text); }
+function logErr(text)  { addMsg('er',   '✕ ' + text); }
+function logInfo(html) { addMsg('info', html); }
+
+function logAnalysis(a) {
+  var pal = a.palette || {};
+  var dots = Object.values(pal).map(function(c) {
+    return '<div class="pdot" style="background:' + c + '" title="' + c + '"></div>';
+  }).join('');
+  var html =
+    '<div class="analysis-card">' +
+      '<div class="ac-title">' + (a.style || 'Building') + '</div>' +
+      '<div class="ac-row"><span>floors</span><strong>' + (a.floors || '?') + '</strong></div>' +
+      '<div class="ac-row"><span>roof</span><strong>' + (a.roofType || '?') + '</strong></div>' +
+      '<div class="ac-row"><span>atmosphere</span><strong>' + (a.atmosphere || '?') + '</strong></div>' +
+      '<div class="palette-dots">' + dots + '</div>' +
+      '<div class="props-row">' + (a.props || []).join(' · ') + '</div>' +
+    '</div>';
+  logInfo(html);
+}
+
+function logCodePreview(code) {
+  var lines = code.split('\n').slice(0, 8).join('\n');
+  var html =
+    '<div class="code-preview">' +
+      escHtml(lines) +
+      '<div class="code-footer">… ' + code.length + ' chars total · saved to models/</div>' +
+    '</div>';
+  logInfo(html);
+}
+
+function logComponents(plan) {
+  var count = plan && plan.components ? plan.components.length : 0;
+  var html =
+    '<div class="analysis-card">' +
+      '<div class="ac-title">Component Plan</div>' +
+      '<div class="ac-row"><span>style</span><strong>' + ((plan && plan.style) || '?') + '</strong></div>' +
+      '<div class="ac-row"><span>components</span><strong>' + count + '</strong></div>' +
+      '<div class="ac-row"><span>units</span><strong>' + ((plan && plan.units) || '?') + '</strong></div>' +
+      '<div class="props-row">' + ((plan && plan.atmosphere) || '') + '</div>' +
+    '</div>';
+  logInfo(html);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── THREE.JS ──────────────────────────────────────────────────────────────
+function renderCode(code) {
+  if (animId) cancelAnimationFrame(animId);
+  var cv = document.getElementById('cv');
+  var wrap = document.getElementById('canvas-wrap');
+  var W = wrap.clientWidth, H = wrap.clientHeight;
+  cv.width = W; cv.height = H;
+
+  var origRAF = window.requestAnimationFrame;
+  var patched = false;
+  window.requestAnimationFrame = function(cb) {
+    animId = origRAF.call(window, cb);
+    if (!patched) { patched = true; window.requestAnimationFrame = origRAF; }
+    return animId;
+  };
+
+  try {
+    var fn = new Function('THREE', 'canvas', 'width', 'height', 'OrbitControls', code);
+    fn(THREE, cv, W, H, THREE.OrbitControls);
+    currentCode = code;
+    document.getElementById('code-content').textContent = code;
+    document.getElementById('empty').style.display = 'none';
+    document.getElementById('toolbar').classList.add('show');
+    document.getElementById('hint').classList.add('show');
+    setPanel('view');
+    return true;
+  } catch(e) {
+    logErr('Render error: ' + e.message);
+    window.requestAnimationFrame = origRAF;
+    return false;
+  }
+}
+
+function setObjectLink(url) {
+  currentObjectUrl = url || '';
+  var btn = document.getElementById('btn-obj');
+  if (currentObjectUrl) {
+    btn.href = currentObjectUrl;
+    btn.style.display = 'inline-block';
+  } else {
+    btn.href = '#';
+    btn.style.display = 'none';
+  }
+}
+
+function setPanel(mode) {
+  currentPanel = mode || 'view';
+  var codePanel = document.getElementById('code-panel');
+  var manualPanel = document.getElementById('manual-panel');
+  var btnCode = document.getElementById('btn-code');
+  var btnManual = document.getElementById('btn-manual');
+  var btnView = document.getElementById('btn-view');
+
+  codePanel.classList.toggle('show', currentPanel === 'code');
+  manualPanel.classList.toggle('show', currentPanel === 'manual');
+  btnCode.textContent = currentPanel === 'code' ? 'Viewing Code' : '{ } Code';
+  btnManual.textContent = currentPanel === 'manual' ? 'AI Panel Open' : 'Regenerate AI';
+  btnView.textContent = currentPanel === 'view' ? 'Viewing Scene' : 'View';
+}
+
+function primeManualPanel() {
+  document.getElementById('manual-prompt').value = manualAgentPrompt();
+}
+
+function applySceneData(d, options) {
+  var opts = options || {};
+  if (!d || !d.code) return false;
+  sceneDataCache[sceneKey(d.provider || currentProvider, d.base || activeBase)] = d;
+  setObjectLink(d.objectUrl || (d.artifactUrls && d.artifactUrls.object));
+  if (opts.populateManual) {
+    document.getElementById('manual-input').value =
+      'ANALYSIS_JSON\n' + JSON.stringify(d.analysis || {}, null, 2) +
+      '\n\nCOMPONENTS_JSON\n' + JSON.stringify(d.components || {}, null, 2);
+  }
+  return renderCode(d.code);
+}
+
+function cacheKey(base) {
+  return currentProvider + ':' + base;
+}
+
+function sceneKey(providerId, base) {
+  return providerId + ':' + base;
+}
+
+function currentProviderLabel() {
+  return providerMap[currentProvider] ? providerMap[currentProvider].label : currentProvider;
+}
+
+function applyProviderOptions(providers, defaultProvider) {
+  providerMap = {};
+  var select = document.getElementById('provider-select');
+  var selected = currentProvider;
+  select.innerHTML = '';
+  providers.forEach(function(provider) {
+    providerMap[provider.id] = provider;
+    var opt = document.createElement('option');
+    opt.value = provider.id;
+    opt.textContent = provider.label + (provider.enabled ? '' : ' (no key)');
+    opt.disabled = !provider.enabled;
+    select.appendChild(opt);
+  });
+  if (providerMap[selected] && providerMap[selected].enabled) {
+    currentProvider = selected;
+  } else if (providerMap[defaultProvider] && providerMap[defaultProvider].enabled) {
+    currentProvider = defaultProvider;
+  } else {
+    providers.forEach(function(provider) {
+      if (provider.enabled && (!providerMap[currentProvider] || !providerMap[currentProvider].enabled)) currentProvider = provider.id;
+    });
+  }
+  select.value = currentProvider;
+  select.disabled = !providers.some(function(provider) { return provider.enabled; });
+}
+
+// ── IMAGE GRID ────────────────────────────────────────────────────────────
+function loadImages() {
+  fetch('/api/images')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      fetch('/api/models?provider=' + encodeURIComponent(currentProvider))
+        .then(function(r2) { return r2.json(); })
+        .then(function(m) {
+          cachedSet = {};
+          m.models.forEach(function(n) { cachedSet[cacheKey(n)] = true; });
+          renderGrid(d.images);
+        });
+    })
+    .catch(function() {
+      document.getElementById('img-grid').innerHTML =
+        '<div class="no-images">Server not reachable</div>';
+    });
+}
+
+function renderGrid(images) {
+  var grid = document.getElementById('img-grid');
+  if (!images || !images.length) {
+    grid.innerHTML = '<div class="no-images">No images in src/</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  images.forEach(function(img) {
+    var base = img.filename.replace(/\.[^.]+$/, '');
+    var card = document.createElement('div');
+    card.className = 'img-card' + (cachedSet[cacheKey(base)] ? ' cached' : '');
+    card.dataset.filename = img.filename;
+    card.dataset.base = base;
+    card.innerHTML =
+      '<img src="' + img.url + '" alt="' + img.filename + '" loading="lazy">' +
+      '<div class="img-label">' + img.filename + '</div>' +
+      '<div class="cache-badge">✓ cached</div>';
+    card.onclick = function() { selectImage(card, img.filename, base); };
+    grid.appendChild(card);
+  });
+}
+
+function setActiveCard(card) {
+  document.querySelectorAll('.img-card').forEach(function(c) {
+    c.classList.remove('active', 'generating');
+  });
+  if (card) {
+    card.classList.add('active');
+    activeCard = card;
+    activeFilename = card.dataset.filename || '';
+    activeBase = card.dataset.base || '';
+  }
+}
+
+// ── SELECT IMAGE ──────────────────────────────────────────────────────────
+function selectImage(card, filename, base) {
+  setActiveCard(card);
+  var memoryHit = sceneDataCache[sceneKey(currentProvider, base)];
+  if (memoryHit) {
+    logSys('Loading ' + currentProviderLabel() + ' scene from memory for ' + filename + '…');
+    if (currentProvider === 'manual') primeManualPanel();
+    applySceneData(memoryHit, { populateManual: currentProvider === 'manual' });
+    logOk('Rendered from memory cache');
+    return;
+  }
+
+  if (currentProvider === 'manual') {
+    if (cachedSet[cacheKey(base)]) {
+      logSys('Loading cached manual model for ' + filename + '…');
+      fetch('/api/model/' + filename + '?provider=manual')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.cached && d.code) {
+            primeManualPanel();
+            applySceneData(d, { populateManual: true });
+            logOk('Rendered cached manual build');
+          } else {
+            openManualPanel();
+          }
+        });
+    } else {
+      openManualPanel();
+    }
+    return;
+  }
+
+  if (cachedSet[cacheKey(base)]) {
+    logSys('Loading cached ' + currentProviderLabel() + ' model for ' + filename + '…');
+    fetch('/api/model/' + filename + '?provider=' + encodeURIComponent(currentProvider))
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.cached && d.code) {
+          applySceneData(d);
+          logOk('Rendered from cache — ' + d.code.length + ' chars');
+        } else {
+          triggerGenerate(card, filename, base);
+        }
+      });
+  } else {
+    if (!hasApi) {
+      logErr('No provider API key available. Add OPENAI_API_KEY, GEMINI_API_KEY, or ANTHROPIC_API_KEY.');
+      return;
+    }
+    triggerGenerate(card, filename, base);
+  }
+}
+
+function triggerGenerate(card, filename, base) {
+  card.classList.add('generating');
+  logSys('Starting ' + currentProviderLabel() + ' generation for ' + filename + '…');
+  fetch('/api/generate/' + filename, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ provider: currentProvider })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) {
+        card.classList.remove('generating');
+        logErr(d.error);
+      }
+    })
+    .catch(function(e) {
+      card.classList.remove('generating');
+      logErr('Request failed: ' + e.message);
+    });
+}
+
+function manualTemplates() {
+  return 'ANALYSIS_JSON\n{\n  "style": "storybook townhouse",\n  "floors": 2,\n  "palette": {\n    "wallFront": "#c8a070",\n    "wallSide": "#a97b54",\n    "roof": "#b14c2e",\n    "trim": "#efe2cf",\n    "ground": "#b99b6d"\n  },\n  "roofType": "gable",\n  "roofColor": "#b14c2e",\n  "massing": { "footprintWidth": 8, "footprintDepth": 7, "height": 8 },\n  "features": {\n    "hasBalcony": false,\n    "hasAwning": false,\n    "windowStyle": "rectangular",\n    "doorColor": "#5b412d"\n  },\n  "props": ["plant"],\n  "atmosphere": "warm afternoon",\n  "notes": ["simple facade", "front-facing roof"]\n}\n\nCOMPONENTS_JSON\n{\n  "units": "meters-ish",\n  "style": "storybook townhouse",\n  "atmosphere": "warm afternoon",\n  "palette": {\n    "wallFront": "#c8a070",\n    "wallSide": "#a97b54",\n    "roof": "#b14c2e",\n    "trim": "#efe2cf",\n    "ground": "#b99b6d",\n    "accent": "#5b412d"\n  },\n  "camera": {\n    "size": 12,\n    "position": { "x": 22, "y": 17, "z": 22 },\n    "lookAt": { "x": 0, "y": 4, "z": 0 }\n  },\n  "lighting": {\n    "ambientColor": "#ffecc0",\n    "ambientIntensity": 1.0,\n    "sunColor": "#ffe090",\n    "sunIntensity": 2.0,\n    "sunPosition": { "x": 16, "y": 28, "z": 10 }\n  },\n  "components": [\n    {\n      "type": "box",\n      "label": "ground",\n      "color": "#b99b6d",\n      "position": { "x": 0, "y": -0.15, "z": 0 },\n      "size": { "w": 18, "h": 0.3, "d": 18 },\n      "rotation": { "x": 0, "y": 0, "z": 0 }\n    },\n    {\n      "type": "box",\n      "label": "main-mass",\n      "color": "#c8a070",\n      "position": { "x": 0, "y": 3.1, "z": 0 },\n      "size": { "w": 7.2, "h": 6.2, "d": 6.2 },\n      "rotation": { "x": 0, "y": 0, "z": 0 }\n    },\n    {\n      "type": "prism",\n      "label": "roof",\n      "color": "#b14c2e",\n      "position": { "x": 0, "y": 6.7, "z": 0 },\n      "size": { "w": 8.2, "h": 2.2, "d": 7.2 },\n      "rotation": { "x": 0, "y": 0, "z": 0 }\n    }\n  ]\n}';
+}
+
+function findJsonEnd(text, startIndex) {
+  var depth = 0;
+  var inString = false;
+  var escaped = false;
+  var i;
+  for (i = startIndex; i < text.length; i += 1) {
+    var ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+    } else {
+      if (ch === '"') inString = true;
+      else if (ch === '{') depth += 1;
+      else if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) return i + 1;
+      }
+    }
+  }
+  return -1;
+}
+
+function extractManualPayload(text) {
+  var raw = (text || '').trim();
+  var analysisLabel = raw.indexOf('ANALYSIS_JSON');
+  var componentsLabel = raw.indexOf('COMPONENTS_JSON');
+  if (analysisLabel !== -1 && componentsLabel !== -1) {
+    var aStart = raw.indexOf('{', analysisLabel);
+    var cStart = raw.indexOf('{', componentsLabel);
+    var aEnd = aStart === -1 ? -1 : findJsonEnd(raw, aStart);
+    var cEnd = cStart === -1 ? -1 : findJsonEnd(raw, cStart);
+    if (aStart === -1 || cStart === -1 || aEnd === -1 || cEnd === -1) {
+      throw new Error('Could not find both labeled JSON blocks.');
+    }
+    return { analysis: raw.slice(aStart, aEnd), components: raw.slice(cStart, cEnd) };
+  }
+  var firstStart = raw.indexOf('{');
+  if (firstStart === -1) throw new Error('No JSON object found.');
+  var firstEnd = findJsonEnd(raw, firstStart);
+  var secondStart = firstEnd === -1 ? -1 : raw.indexOf('{', firstEnd);
+  var secondEnd = secondStart === -1 ? -1 : findJsonEnd(raw, secondStart);
+  if (firstEnd !== -1 && secondStart !== -1 && secondEnd !== -1) {
+    return { analysis: raw.slice(firstStart, firstEnd), components: raw.slice(secondStart, secondEnd) };
+  }
+  throw new Error('Paste labeled ANALYSIS_JSON and COMPONENTS_JSON blocks, or two JSON objects back to back.');
+}
+
+function manualAgentPrompt() {
+  return [
+    'I am attaching a building image.',
+    '',
+    'Return exactly two JSON objects in one response, with these labels:',
+    '',
+    'ANALYSIS_JSON',
+    '{...}',
+    '',
+    'COMPONENTS_JSON',
+    '{...}',
+    '',
+    'Do not include markdown fences.',
+    'Do not include explanation.',
+    'Do not include any extra text outside those two labeled JSON blocks.',
+    '',
+    'ANALYSIS_JSON must use this exact schema:',
+    '{',
+    '  "style": "short style label",',
+    '  "floors": 2,',
+    '  "palette": {',
+    '    "wallFront": "#c8a070",',
+    '    "wallSide": "#a97b54",',
+    '    "roof": "#b14c2e",',
+    '    "trim": "#efe2cf",',
+    '    "ground": "#b99b6d"',
+    '  },',
+    '  "roofType": "gable|flat|hip|shed",',
+    '  "roofColor": "#b14c2e",',
+    '  "massing": {',
+    '    "footprintWidth": 8,',
+    '    "footprintDepth": 7,',
+    '    "height": 8',
+    '  },',
+    '  "features": {',
+    '    "hasBalcony": false,',
+    '    "hasAwning": false,',
+    '    "windowStyle": "arched|rectangular|mixed",',
+    '    "doorColor": "#5b412d"',
+    '  },',
+    '  "props": ["plant"],',
+    '  "atmosphere": "warm afternoon",',
+    '  "notes": ["simple detail 1", "simple detail 2"]',
+    '}',
+    '',
+    'COMPONENTS_JSON must use this exact schema:',
+    '{',
+    '  "units": "meters-ish",',
+    '  "style": "short label",',
+    '  "atmosphere": "short phrase",',
+    '  "palette": {',
+    '    "wallFront": "#...",',
+    '    "wallSide": "#...",',
+    '    "roof": "#...",',
+    '    "trim": "#...",',
+    '    "ground": "#...",',
+    '    "accent": "#..."',
+    '  },',
+    '  "camera": {',
+    '    "size": 12,',
+    '    "position": { "x": 22, "y": 17, "z": 22 },',
+    '    "lookAt": { "x": 0, "y": 4, "z": 0 }',
+    '  },',
+    '  "lighting": {',
+    '    "ambientColor": "#ffecc0",',
+    '    "ambientIntensity": 1.0,',
+    '    "sunColor": "#ffe090",',
+    '    "sunIntensity": 2.0,',
+    '    "sunPosition": { "x": 16, "y": 28, "z": 10 }',
+    '  },',
+    '  "components": [',
+    '    {',
+    '      "type": "box",',
+    '      "label": "main-mass",',
+    '      "color": "#c8a070",',
+    '      "position": { "x": 0, "y": 3.2, "z": 0 },',
+    '      "size": { "w": 8, "h": 6, "d": 7 },',
+    '      "rotation": { "x": 0, "y": 0, "z": 0 }',
+    '    }',
+    '  ]',
+    '}',
+    '',
+    'Rules for COMPONENTS_JSON:',
+    '- Use only: box, prism, cylinder, sphere',
+    '- Keep the plan efficient: 10 to 32 components total',
+    '- Use prism for pitched roofs',
+    '- Use spheres or cylinders for plants and chimneys',
+    '- Put doors and windows slightly in front of the front wall',
+    '- Keep rotations near 0 unless clearly necessary',
+    '- Make the result easy to export as OBJ'
+  ].join('\n');
+}
+
+function copyManualPrompt() {
+  if (!activeFilename) {
+    logErr('Select an image first.');
+    return;
+  }
+  navigator.clipboard.writeText(manualAgentPrompt()).then(function() {
+    logOk('AI prompt copied. Paste it into ChatGPT and attach the same image.');
+  }).catch(function() {
+    logErr('Could not copy prompt automatically.');
+  });
+}
+
+function clearCurrentCache() {
+  if (!activeFilename) {
+    logErr('Select an image first.');
+    return;
+  }
+  fetch('/api/cache/' + activeFilename + '?provider=' + encodeURIComponent(currentProvider), {
+    method: 'DELETE'
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) {
+        logErr(d.error);
+        return;
+      }
+      delete cachedSet[cacheKey(activeBase)];
+      delete sceneDataCache[sceneKey(currentProvider, activeBase)];
+      var card = document.querySelector('.img-card[data-base="' + activeBase + '"]');
+      if (card) card.classList.remove('cached');
+      setObjectLink('');
+      logOk('Cleared cached scene for ' + activeFilename + ' (' + currentProviderLabel() + ')');
+      if (currentProvider === 'manual') {
+        document.getElementById('manual-input').value = '';
+      }
+    })
+    .catch(function(e) {
+      logErr('Clear cache failed: ' + e.message);
+    });
+}
+
+function openManualPanel() {
+  if (!activeFilename) {
+    logErr('Select an image first.');
+    return;
+  }
+  primeManualPanel();
+  setPanel('manual');
+}
+
+function closeManualPanel() {
+  setPanel('view');
+}
+
+function submitManualBuild() {
+  if (!activeFilename) {
+    logErr('Select an image first.');
+    return;
+  }
+  var raw = document.getElementById('manual-input').value.trim();
+  if (!raw) {
+    logErr('Paste your AI response first.');
+    return;
+  }
+  var payload;
+  try {
+    payload = extractManualPayload(raw);
+  } catch (e) {
+    logErr(e.message);
+    return;
+  }
+  logSys('Building from pasted JSON for ' + activeFilename + '…');
+  fetch('/api/manual/' + activeFilename, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ analysis: payload.analysis, components: payload.components })
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) {
+        logErr(d.error);
+        return;
+      }
+      currentProvider = 'manual';
+      var ok = applySceneData(d, { populateManual: true });
+      if (ok) {
+        cachedSet['manual:' + activeBase] = true;
+        var card = document.querySelector('.img-card[data-base="' + activeBase + '"]');
+        if (card) card.classList.add('cached');
+        logOk('Manual build complete');
+        closeManualPanel();
+      }
+    })
+    .catch(function(e) {
+      logErr('Manual build failed: ' + e.message);
+    });
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────────────────────
+var socket;
+function connectWS() {
+  socket = new WebSocket('ws://' + location.host);
+
+  socket.onopen = function() {
+    document.getElementById('dot').classList.add('live');
+    document.getElementById('conn-label').textContent = 'live';
+    fetch('/api/status').then(function(r) { return r.json(); }).then(function(d) {
+      hasApi = d.hasApi;
+      applyProviderOptions(d.providers, d.defaultProvider);
+      var badge = document.getElementById('api-badge');
+      if (d.hasApi) {
+        badge.textContent = currentProviderLabel() + ' ready';
+        badge.classList.add('on');
+      } else {
+        badge.textContent = 'no api key';
+      }
+      loadImages();
+    });
+  };
+
+  socket.onclose = function() {
+    document.getElementById('dot').classList.remove('live');
+    document.getElementById('conn-label').textContent = 'reconnecting…';
+    setTimeout(connectWS, 2000);
+  };
+
+  socket.onmessage = function(e) {
+    var d = JSON.parse(e.data);
+
+    if (d.type === 'start') {
+      logSys('Processing ' + d.filename + ' with ' + (providerMap[d.provider] ? providerMap[d.provider].label : d.provider));
+    }
+    else if (d.type === 'step') {
+      logStep('Step ' + d.step + '/' + d.of + ' — ' + d.message);
+    }
+    else if (d.type === 'analysis') {
+      logOk('Analysis complete');
+      logAnalysis(d.analysis);
+    }
+    else if (d.type === 'components') {
+      logOk('Component plan complete');
+      logComponents(d.components);
+    }
+    else if (d.type === 'scene_ready') {
+      logOk('Scene artifacts built locally — ' + d.code.length + ' chars');
+      logCodePreview(d.code);
+      if (d.objectUrl || (d.artifactUrls && d.artifactUrls.object)) {
+        logOk('OBJ export ready');
+      }
+
+      // Mark card as cached
+      cachedSet[d.provider + ':' + d.base] = true;
+      var card = document.querySelector('.img-card[data-base="' + d.base + '"]');
+      if (card) { card.classList.add('cached'); card.classList.remove('generating'); }
+
+      // Render
+      logStep('Rendering scene…');
+      setTimeout(function() {
+        var ok = applySceneData(d, { populateManual: d.provider === 'manual' });
+        if (ok) {
+          logOk('Scene live — drag to orbit, scroll to zoom');
+        } else {
+          logErr('Scene render failed — check code panel for errors');
+        }
+      }, 80);
+    }
+    else if (d.type === 'error') {
+      var card = document.querySelector('.img-card.generating');
+      if (card) card.classList.remove('generating');
+      logErr(d.message);
+    }
+  };
+}
+
+// ── TOOLBAR ───────────────────────────────────────────────────────────────
+document.getElementById('btn-reset').onclick = function() {
+  if (currentCode) renderCode(currentCode);
+};
+document.getElementById('btn-code').onclick = function() {
+  setPanel(currentPanel === 'code' ? 'view' : 'code');
+};
+document.getElementById('btn-code-close').onclick = function() {
+  setPanel('view');
+};
+document.getElementById('btn-view').onclick = function() {
+  setPanel('view');
+};
+document.getElementById('btn-manual').onclick = openManualPanel;
+document.getElementById('btn-manual-close').onclick = closeManualPanel;
+document.getElementById('btn-copy-prompt').onclick = copyManualPrompt;
+document.getElementById('btn-manual-build').onclick = submitManualBuild;
+document.getElementById('btn-manual-fill').onclick = function() {
+  document.getElementById('manual-input').value = manualTemplates();
+};
+document.getElementById('btn-clear-cache').onclick = clearCurrentCache;
+document.getElementById('btn-obj').onclick = function(e) {
+  if (!currentObjectUrl) e.preventDefault();
+};
+document.getElementById('provider-select').onchange = function() {
+  currentProvider = this.value;
+  var badge = document.getElementById('api-badge');
+  badge.textContent = providerMap[currentProvider] && providerMap[currentProvider].enabled ? currentProviderLabel() + ' ready' : currentProviderLabel() + ' unavailable';
+  badge.classList.toggle('on', !!(providerMap[currentProvider] && providerMap[currentProvider].enabled));
+  setObjectLink('');
+  if (currentProvider === 'manual') primeManualPanel();
+  loadImages();
+};
+document.getElementById('log-clear').onclick = function() {
+  document.getElementById('log-msgs').innerHTML = '';
+};
+
+connectWS();
+</script>
+</body>
+</html>

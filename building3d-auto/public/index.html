@@ -87,7 +87,7 @@ header h1 span{color:var(--warm);}
 }
 #pipeline-view.show{display:flex;}
 .pv-head{
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;
   padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;
 }
 .pv-title{font-size:11px;color:#e8c060;text-transform:uppercase;letter-spacing:.08em;}
@@ -491,40 +491,20 @@ var pipelineLastPhaseRow = null;
 
 // ── PIPELINE GATE METADATA ────────────────────────────────────────────────
 var GATE_METADATA = {
-  'gate_3_1_masks_depth': {
-    group: '🔍 Geometric Analysis',
-    title: 'Segmentation + Depth Overlay',
-    description: 'Material regions overlaid on depth map. Verifies segmentation aligns with depth boundaries.'
+  'analysis_overlay': {
+    group: '🔍 Region Detection',
+    title: 'Labelled Regions',
+    description: 'Colour-coded bounding boxes on the original image. Shows what the pipeline identified as roof (amber), wall (blue), windows (green), and door (red). Used for material colour extraction and depth estimation per region.'
   },
-  'gate_3_2_lines_depth': {
-    group: '🔍 Geometric Analysis',
-    title: 'Edge Lines + Depth',
-    description: 'Detected architectural edges overlaid on depth. Validates line detection against depth discontinuities.'
+  'footprint': {
+    group: '📐 Geometry',
+    title: 'Building Footprint',
+    description: 'Top-down silhouette polygon derived from the depth map. This 8-vertex outline is what Blender extrudes upward to build the walls. Teal fill = detected building area.'
   },
-  'gate_3_3_depth_per_region': {
-    group: '📊 Depth Analysis',
-    title: 'Mean Depth per Region',
-    description: 'Bar chart showing average depth per material. Roof farthest, doors/windows nearer. Lower = closer to camera.'
-  },
-  'gate_3_4_window_grid': {
-    group: '🪟 Feature Detection',
-    title: 'Window Centroid Grid',
-    description: 'Window positions should form a regular grid. Validates consistent horizontal/vertical alignment.'
-  },
-  'gate_3_5_footprint': {
-    group: '🪟 Feature Detection',
-    title: 'Top-Down Footprint',
-    description: 'Overhead building outline from depth. Left: depth map, Right: footprint to be extruded in Blender.'
-  },
-  'gate_3_6_profiles': {
-    group: '📊 Depth Analysis',
-    title: 'Depth Cross-Sections',
-    description: 'Depth profiles at roof (top), mid-wall (middle), and base (bottom). Shows facade depth variation.'
-  },
-  'gate_3_7_pointcloud': {
-    group: '🌐 3D Visualization',
-    title: 'Interactive Point Cloud',
-    description: 'Downsampled 3D scatter plot. Rotate/zoom to explore. Interactive—click and drag to inspect.'
+  'depth_heatmap': {
+    group: '📐 Geometry',
+    title: 'Depth Map',
+    description: 'Metric depth estimated by Apple Depth Pro. Warm = closer, cool = farther. Used to estimate wall height, footprint shape, and 3D window positions.'
   }
 };
 
@@ -1282,19 +1262,20 @@ function showPipelineResults(gates, analysis) {
   // Organize gates by group
   var gatesByGroup = {};
   pipelineLastArtifacts.forEach(function(g) {
-    if (g.kind === 'json' || g.url.endsWith('.html')) {
+    if (g.url.endsWith('.html')) {
       var link = document.createElement('a');
       link.className = 'pv-link';
       link.href = g.url;
       link.target = '_blank';
       link.rel = 'noreferrer';
-      link.textContent = prettyPipelineArtifactName(g.name);
+      link.textContent = g.name.replace(/\.html$/i, '').replace(/_/g, ' ');
       links.appendChild(link);
       return;
     }
-    if (g.name.indexOf('gate_') !== 0) return;
-
-    var meta = GATE_METADATA[g.name.replace(/\.png$/i, '')];
+    // Only show images that have metadata defined
+    var nameKey = g.name.replace(/\.png$/i, '');
+    var meta = GATE_METADATA[nameKey];
+    if (!meta) return;  // skip low-value files (edges.png, masks.png, etc.)
     var group = meta ? meta.group : '❓ Other';
     if (!gatesByGroup[group]) gatesByGroup[group] = [];
     gatesByGroup[group].push({ gate: g, meta: meta });
@@ -1412,7 +1393,7 @@ document.getElementById('btn-pv-close').onclick = function() {
 function openLightbox(url, name) {
   document.getElementById('gate-lightbox-img').src = url + '?t=' + Date.now();
 
-  var meta = GATE_METADATA[name.replace(/\.png$/i, '')];
+  var meta = GATE_METADATA[name.replace(/\.png$/i, '').replace(/^.*\//, '')];
   var nameEl = document.getElementById('gate-lightbox-name');
   if (meta) {
     nameEl.innerHTML = '<strong>' + meta.group + ' — ' + meta.title + '</strong><br>' +

@@ -20,11 +20,32 @@ var MODELS_DIR = path.join(__dirname, 'models');
 var ANALYSES_DIR = path.join(__dirname, 'analyses');
 var COMPONENTS_DIR = path.join(__dirname, 'components');
 var OBJECTS_DIR = path.join(__dirname, 'objects');
+var LOGS_DIR = path.join(__dirname, 'logs');
+var GENERATION_LOG_PATH = path.join(LOGS_DIR, 'generation.log');
 var IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+var PIPELINE_DIR = path.join(__dirname, '..', 'building3d-pipeline');
+var PIPELINE_ANALYSIS_DIR = path.join(PIPELINE_DIR, 'analysis');
+var PIPELINE_OUTPUT_DIR = path.join(PIPELINE_DIR, 'output');
 
-[SRC_DIR, MODELS_DIR, ANALYSES_DIR, COMPONENTS_DIR, OBJECTS_DIR].forEach(function(dir) {
+[SRC_DIR, MODELS_DIR, ANALYSES_DIR, COMPONENTS_DIR, OBJECTS_DIR, LOGS_DIR].forEach(function(dir) {
   fs.mkdirSync(dir, { recursive: true });
 });
+
+function stamp() {
+  return new Date().toISOString();
+}
+
+function oneLine(value) {
+  return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+}
+
+function appendGenerationLog(scope, message, details) {
+  var line = '[' + stamp() + '] [' + scope + '] ' + oneLine(message);
+  if (details && Object.keys(details).length) {
+    line += ' | ' + JSON.stringify(details);
+  }
+  fs.appendFileSync(GENERATION_LOG_PATH, line + '\n');
+}
 
 function readEnvVar(name) {
   if (process.env[name]) return process.env[name];
@@ -126,11 +147,47 @@ app.use('/models', express.static(MODELS_DIR));
 app.use('/analyses', express.static(ANALYSES_DIR));
 app.use('/components', express.static(COMPONENTS_DIR));
 app.use('/objects', express.static(OBJECTS_DIR));
+app.use('/pipeline-analysis', express.static(PIPELINE_ANALYSIS_DIR));
+app.use('/pipeline-output', express.static(PIPELINE_OUTPUT_DIR));
 
 var isProcessing = false;
+var isPipelineRunning = false;
 
 function broadcast(data) {
   var msg = JSON.stringify(data);
+  if (data && data.type) {
+    if (data.type === 'pipeline_log') {
+      appendGenerationLog('pipeline', data.text || '', { level: data.level || 'info' });
+    } else if (data.type === 'pipeline_phase') {
+      appendGenerationLog('pipeline', 'Phase ' + data.phase + ' — ' + pipelinePhaseLabel(data.phase), { phase: data.phase });
+    } else if (data.type === 'pipeline_progress') {
+      appendGenerationLog('pipeline', data.text || ('Phase ' + data.phase + ' progress'), { phase: data.phase, seconds: data.seconds || 0 });
+    } else if (data.type === 'pipeline_start') {
+      appendGenerationLog('pipeline', 'Pipeline started for ' + (data.filename || ''), { filename: data.filename || '' });
+    } else if (data.type === 'pipeline_done') {
+      appendGenerationLog('pipeline', 'Pipeline complete', {
+        gateCount: data.gates ? data.gates.length : 0,
+        artifactCount: data.artifacts ? data.artifacts.length : 0
+      });
+    } else if (data.type === 'pipeline_error') {
+      appendGenerationLog('pipeline', data.message || 'Pipeline error');
+    } else if (data.type === 'start') {
+      appendGenerationLog('scene', 'Scene generation started for ' + (data.filename || ''), { provider: data.provider || '' });
+    } else if (data.type === 'step') {
+      appendGenerationLog('scene', data.message || 'Scene generation step', {
+        provider: data.provider || '',
+        step: data.step || 0,
+        of: data.of || 0
+      });
+    } else if (data.type === 'error') {
+      appendGenerationLog('scene', data.message || 'Scene generation error', { provider: data.provider || '' });
+    } else if (data.type === 'scene_ready') {
+      appendGenerationLog('scene', 'Scene generation complete for ' + (data.filename || ''), {
+        provider: data.provider || '',
+        componentCount: data.components && data.components.components ? data.components.components.length : 0
+      });
+    }
+  }
   wss.clients.forEach(function(client) {
     if (client.readyState === ws.OPEN) client.send(msg);
   });
@@ -583,6 +640,7 @@ function artifactPaths(base, providerId) {
   var artifactBase = getArtifactBase(base, providerId);
   return {
     modelPath: path.join(MODELS_DIR, artifactBase + '.js'),
+    metaPath: path.join(MODELS_DIR, artifactBase + '.meta.json'),
     analysisPath: path.join(ANALYSES_DIR, artifactBase + '.json'),
     componentsPath: path.join(COMPONENTS_DIR, artifactBase + '.json'),
     objectPath: path.join(OBJECTS_DIR, artifactBase + '.obj')
@@ -593,6 +651,7 @@ function artifactUrls(base, providerId) {
   var artifactBase = getArtifactBase(base, providerId);
   return {
     model: '/models/' + artifactBase + '.js',
+    meta: '/models/' + artifactBase + '.meta.json',
     analysis: '/analyses/' + artifactBase + '.json',
     components: '/components/' + artifactBase + '.json',
     object: '/objects/' + artifactBase + '.obj'
@@ -815,6 +874,18 @@ function persistArtifacts(base, providerId, analysis, plan, code, objText) {
   writeJson(path.join(COMPONENTS_DIR, artifactBase + '.json'), plan);
   fs.writeFileSync(path.join(MODELS_DIR, artifactBase + '.js'), code);
   fs.writeFileSync(path.join(OBJECTS_DIR, artifactBase + '.obj'), objText);
+  var meta = {
+    schemaVersion: 1,
+    base: base,
+    provider: providerId,
+    createdAt: new Date().toISOString(),
+    style: plan.style || '',
+    atmosphere: plan.atmosphere || '',
+    componentCount: plan.components ? plan.components.length : 0,
+    analysisModel: providers[providerId] ? providers[providerId].analysisModel : '',
+    planningModel: providers[providerId] ? providers[providerId].planningModel : ''
+  };
+  writeJson(path.join(MODELS_DIR, artifactBase + '.meta.json'), meta);
 }
 
 app.get('/api/images', function(req, res) {
@@ -931,6 +1002,7 @@ app.post('/api/manual/:filename', function(req, res) {
   var base = path.basename(filename, ext);
 
   try {
+    appendGenerationLog('manual', 'Manual build started for ' + filename);
     var analysis = typeof req.body.analysis === 'string' ? safeJsonParse(req.body.analysis) : req.body.analysis;
     var rawPlan = typeof req.body.components === 'string' ? safeJsonParse(req.body.components) : req.body.components;
     var plan = normalizePlan(base, analysis, rawPlan);
@@ -946,13 +1018,36 @@ app.post('/api/manual/:filename', function(req, res) {
       objectUrl: artifactUrls(base, 'manual').object,
       artifactUrls: artifactUrls(base, 'manual')
     });
+    appendGenerationLog('manual', 'Manual build complete for ' + filename, {
+      componentCount: plan.components ? plan.components.length : 0
+    });
   } catch (error) {
+    appendGenerationLog('manual', 'Manual build failed for ' + filename + ': ' + error.message);
     res.json({ error: 'Manual JSON parse/build failed: ' + error.message });
   }
 });
 
+var processingTimeout = null;
+var PROCESSING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+function finishProcessing() {
+  isProcessing = false;
+  if (processingTimeout) {
+    clearTimeout(processingTimeout);
+    processingTimeout = null;
+  }
+}
+
 function processImage(filePath, providerId) {
   isProcessing = true;
+  processingTimeout = setTimeout(function() {
+    if (isProcessing) {
+      broadcast({ type: 'error', provider: providerId, message: 'Generation timed out after 5 minutes.' });
+      isProcessing = false;
+      processingTimeout = null;
+    }
+  }, PROCESSING_TIMEOUT_MS);
+
   var filename = path.basename(filePath);
   var ext = path.extname(filePath).toLowerCase();
   var base = path.basename(filename, ext);
@@ -984,15 +1079,207 @@ function processImage(filePath, providerId) {
         objectUrl: artifactUrls(base, providerId).object,
         artifactUrls: artifactUrls(base, providerId)
       });
-      isProcessing = false;
+      finishProcessing();
     });
   }).catch(function(error) {
     broadcast({ type: 'error', provider: providerId, message: 'Generation failed: ' + error.message });
-    isProcessing = false;
+    finishProcessing();
   });
 }
 
+// ── PIPELINE API ──────────────────────────────────────────────────────────
+
+function findPipelineCommand() {
+  var condaExe = process.env.CONDA_EXE || 'conda';
+  return {
+    cmd: condaExe,
+    args: ['run', '--no-capture-output', '-n', 'makeHome', 'python']
+  };
+}
+
+function pipelinePhaseLabel(phase) {
+  return {
+    0: 'Input Preparation',
+    1: '2D Analysis',
+    2: 'Depth Analysis',
+    3: 'Validation Gates',
+    4: 'Krea 3D Mesh',
+    5: 'Structure Extraction',
+    6: 'Blender Rebuild',
+    7: 'Export'
+  }[phase] || ('Phase ' + phase);
+}
+
+function pipelineHeartbeatMessage(phase, seconds) {
+  if (phase === 1) return 'Phase 1 still running after ' + seconds + 's. SAM2 can be quiet for 30-60s on a 1024px image.';
+  if (phase === 2) return 'Phase 2 still running after ' + seconds + 's. Depth Pro may be loading weights or running CPU inference.';
+  if (phase === 6) return 'Phase 6 still running after ' + seconds + 's. Blender headless rebuild can take a while.';
+  return pipelinePhaseLabel(phase) + ' still running after ' + seconds + 's.';
+}
+
+function listGateImages() {
+  var gatesDir = path.join(PIPELINE_ANALYSIS_DIR, 'gates');
+  if (!fs.existsSync(gatesDir)) return [];
+  return fs.readdirSync(gatesDir)
+    .filter(function(f) { return f.endsWith('.png') || f.endsWith('.html'); })
+    .sort()
+    .map(function(f) { return { name: f, url: '/pipeline-analysis/gates/' + f }; });
+}
+
+function listPipelineArtifacts() {
+  var files = [];
+  if (fs.existsSync(PIPELINE_ANALYSIS_DIR)) {
+    files = files.concat(fs.readdirSync(PIPELINE_ANALYSIS_DIR)
+      .filter(function(f) {
+        return f.endsWith('.png') || f.endsWith('.json') || f.endsWith('.html');
+      })
+      .map(function(f) {
+        return {
+          name: f,
+          url: '/pipeline-analysis/' + f,
+          kind: f.endsWith('.json') ? 'json' : (f.endsWith('.html') ? 'html' : 'image')
+        };
+      }));
+  }
+
+  return files.concat(listGateImages().map(function(file) {
+    return {
+      name: file.name,
+      url: file.url,
+      kind: file.url.endsWith('.html') ? 'html' : 'image'
+    };
+  }));
+}
+
+app.get('/api/pipeline/status', function(req, res) {
+  var analysisPath = path.join(PIPELINE_ANALYSIS_DIR, 'building_analysis.json');
+  var analysis = null;
+  if (fs.existsSync(analysisPath)) {
+    try { analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf8')); } catch(e) {}
+  }
+  res.json({
+    running: isPipelineRunning,
+    analysis: analysis,
+    gates: listGateImages(),
+    artifacts: listPipelineArtifacts()
+  });
+});
+
+app.post('/api/pipeline/:filename', function(req, res) {
+  if (isPipelineRunning) return res.json({ error: 'Pipeline already running.' });
+
+  var filename = req.params.filename;
+  var imgPath = path.join(SRC_DIR, filename);
+  if (!fs.existsSync(imgPath)) return res.json({ error: 'Image not found: ' + filename });
+
+  var opts = req.body || {};
+  var skipDepth   = !!opts.skipDepth;
+  var skipBlender = opts.skipBlender !== false;  // default: skip blender
+  var useKrea     = !!opts.useKrea;
+  var kreaKey     = opts.kreaKey || '';
+
+  res.json({ ok: true });
+  isPipelineRunning = true;
+  broadcast({ type: 'pipeline_start', filename: filename });
+  broadcast({
+    type: 'pipeline_log',
+    text: 'Launching pipeline in conda env `makeHome`' +
+      (skipDepth ? ' · skip depth' : ' · depth enabled') +
+      (skipBlender ? ' · skip blender' : ' · blender enabled') +
+      (useKrea ? ' · Krea enabled' : ' · Krea disabled')
+  });
+
+  var pipeline = findPipelineCommand();
+  var args = pipeline.args.concat([
+    path.join(PIPELINE_DIR, 'pipeline.py'),
+    '--image', imgPath,
+    '--output', path.join(PIPELINE_DIR, 'output'),
+    '--analysis-dir', PIPELINE_ANALYSIS_DIR
+  ]);
+  if (skipDepth)   args.push('--skip-depth');
+  if (skipBlender) args.push('--skip-blender');
+  if (useKrea) {
+    args.push('--use-krea-3d');
+    if (kreaKey) { args.push('--krea-key'); args.push(kreaKey); }
+  }
+
+  var proc = require('child_process').spawn(pipeline.cmd, args, {
+    cwd: PIPELINE_DIR,
+    env: Object.assign({}, process.env, {
+      PYTHONUNBUFFERED: '1',
+      NUMBA_CACHE_DIR: process.env.NUMBA_CACHE_DIR || '/tmp/numba-cache',
+      MPLCONFIGDIR: process.env.MPLCONFIGDIR || '/tmp/matplotlib',
+      XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || '/tmp/xdg-cache',
+      LOKY_MAX_CPU_COUNT: process.env.LOKY_MAX_CPU_COUNT || '8',
+      BUILDING3D_DISABLE_SAM2: process.env.BUILDING3D_DISABLE_SAM2 || '1'
+    })
+  });
+  var lineBuffer = '';
+  var currentPhase = 0;
+  var phaseStartedAt = Date.now();
+  var heartbeat = setInterval(function() {
+    if (!isPipelineRunning) return;
+    var elapsed = Math.round((Date.now() - phaseStartedAt) / 1000);
+    if (elapsed >= 10) {
+      broadcast({ type: 'pipeline_progress', phase: currentPhase, seconds: elapsed, text: pipelineHeartbeatMessage(currentPhase, elapsed) });
+    }
+  }, 10000);
+
+  function flushLines(chunk) {
+    lineBuffer += chunk;
+    var parts = lineBuffer.split('\n');
+    lineBuffer = parts.pop();
+    parts.forEach(function(line) {
+      if (!line.trim()) return;
+      broadcast({ type: 'pipeline_log', text: line });
+      var m = line.match(/\[Phase (\d+)/);
+      if (m) {
+        currentPhase = parseInt(m[1], 10);
+        phaseStartedAt = Date.now();
+        broadcast({ type: 'pipeline_phase', phase: currentPhase });
+      }
+    });
+  }
+
+  proc.stdout.on('data', function(data) { flushLines(data.toString()); });
+  proc.stderr.on('data', function(data) {
+    var text = data.toString().trim();
+    if (text) broadcast({ type: 'pipeline_log', text: text, level: 'warn' });
+  });
+
+  proc.on('close', function(code) {
+    clearInterval(heartbeat);
+    if (lineBuffer.trim()) broadcast({ type: 'pipeline_log', text: lineBuffer });
+    isPipelineRunning = false;
+    if (code === 0) {
+      var analysisPath = path.join(PIPELINE_ANALYSIS_DIR, 'building_analysis.json');
+      var analysis = null;
+      if (fs.existsSync(analysisPath)) {
+        try { analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf8')); } catch(e) {}
+      }
+      broadcast({
+        type: 'pipeline_done',
+        analysis: analysis,
+        gates: listGateImages(),
+        artifacts: listPipelineArtifacts()
+      });
+    } else {
+      broadcast({ type: 'pipeline_error', message: 'Pipeline exited with code ' + code });
+    }
+  });
+
+  proc.on('error', function(err) {
+    clearInterval(heartbeat);
+    isPipelineRunning = false;
+    broadcast({ type: 'pipeline_error', message: 'Failed to start pipeline: ' + err.message });
+  });
+});
+
 server.listen(PORT, function() {
+  appendGenerationLog('server', 'Server started', {
+    port: PORT,
+    logPath: GENERATION_LOG_PATH
+  });
   console.log('\n  Building → 3D');
   console.log('  ─────────────────────────────');
   console.log('  http://localhost:' + PORT + '\n');

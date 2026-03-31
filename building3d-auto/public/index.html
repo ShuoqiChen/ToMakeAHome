@@ -41,8 +41,125 @@ header h1 span{color:var(--warm);}
 /* ── LEFT: image picker ─────────────────────────────────────────────────── */
 #left{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
 
-#left-head{padding:10px 12px 8px;border-bottom:1px solid var(--border);flex-shrink:0;}
-#left-head h2{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+#left-head{padding:6px 10px 5px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.left-tabs{display:flex;gap:4px;}
+.ltab{
+  flex:1;border:1px solid var(--border);background:transparent;color:var(--muted);
+  border-radius:5px;padding:4px 0;font-family:'DM Mono',monospace;font-size:9px;
+  text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:all .15s;
+}
+.ltab:hover{border-color:var(--warm);color:var(--ink);}
+.ltab.active{background:var(--warm);border-color:var(--warm-dk);color:#fff;}
+
+/* ── PIPELINE PANEL (left sidebar) ─────────────────────────────────────── */
+#pipeline-panel{flex:1;overflow-y:auto;padding:10px;display:none;flex-direction:column;gap:10px;}
+#pipeline-panel.show{display:flex;}
+.pl-section{display:flex;flex-direction:column;gap:6px;}
+.pl-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.pl-selected{
+  font-size:10px;color:var(--ink);background:var(--card);border:1px solid var(--border);
+  border-radius:5px;padding:5px 8px;word-break:break-all;line-height:1.5;min-height:28px;
+}
+.pl-selected.empty{color:var(--muted);font-style:italic;}
+.pl-option{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--ink);cursor:pointer;padding:2px 0;}
+.pl-option input{accent-color:var(--warm);}
+.pl-run{
+  width:100%;padding:8px 0;background:var(--sage);color:#d4e8c4;border:none;
+  border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;
+  letter-spacing:.04em;cursor:pointer;transition:background .15s;
+}
+.pl-run:hover{background:#2d4520;}
+.pl-run:disabled{background:var(--muted);color:rgba(255,255,255,0.4);cursor:not-allowed;}
+.pl-status{
+  font-size:9px;color:var(--muted);text-align:center;padding:4px 0;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.pl-spinner{
+  display:inline-block;width:8px;height:8px;
+  border:1.5px solid rgba(58,88,40,0.3);border-top-color:var(--sage);
+  border-radius:50%;animation:spin .7s linear infinite;
+}
+
+/* ── PIPELINE RESULTS VIEW ──────────────────────────────────────────────── */
+#pipeline-view{
+  position:absolute;inset:0;background:rgba(20,12,6,0.97);
+  display:none;flex-direction:column;z-index:9;overflow:hidden;
+}
+#pipeline-view.show{display:flex;}
+.pv-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;
+}
+.pv-title{font-size:11px;color:#e8c060;text-transform:uppercase;letter-spacing:.08em;}
+.pv-tabs{display:flex;gap:6px;}
+.pvtab{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  color:rgba(212,200,154,0.6);border-radius:4px;padding:3px 9px;
+  font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;
+}
+.pvtab.active{background:rgba(232,192,96,0.15);border-color:rgba(232,192,96,0.4);color:#e8c060;}
+.pv-body{flex:1;overflow-y:auto;padding:10px;}
+.pv-body::-webkit-scrollbar{width:3px;}
+.pv-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);}
+.pv-meta{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-bottom:10px;padding:8px 10px;border-radius:6px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+}
+.pv-status{font-size:10px;color:#e8c060;}
+.pv-links{display:flex;gap:6px;flex-wrap:wrap;}
+.pv-link{
+  display:inline-block;padding:3px 8px;border-radius:999px;font-size:9px;
+  color:#d4c89a;text-decoration:none;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.03);
+}
+.pv-link:hover{border-color:rgba(232,192,96,0.35);color:#f0dfb2;}
+
+/* Gate image grid */
+#gates-grid{display:flex;flex-direction:column;gap:16px;}
+.gate-group{margin-bottom:8px;}
+.gate-group-title{
+  font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.1);
+}
+.gate-cards-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.gate-card{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  border-radius:6px;overflow:hidden;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;
+}
+.gate-card:hover{border-color:rgba(232,192,96,0.4);background:rgba(255,255,255,0.06);}
+.gate-card img{width:100%;display:block;aspect-ratio:1;}
+.gate-info{padding:8px;flex:1;display:flex;flex-direction:column;}
+.gate-title{font-size:8px;font-weight:500;color:rgba(212,200,154,0.8);margin-bottom:3px;}
+.gate-desc{font-size:7px;color:rgba(212,200,154,0.5);line-height:1.3;}
+.gate-empty{
+  grid-column:1/-1;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.08);
+  border-radius:6px;padding:18px 12px;font-size:10px;color:rgba(212,200,154,0.45);text-align:center;
+}
+
+/* Fullscreen gate lightbox */
+#gate-lightbox{
+  position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:100;
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;
+  padding:20px;
+}
+#gate-lightbox.show{display:flex;}
+#gate-lightbox img{max-width:85vw;max-height:70vh;border-radius:6px;box-shadow:0 0 30px rgba(0,0,0,0.5);}
+#gate-lightbox-name{
+  font-size:11px;color:rgba(212,200,154,0.75);max-width:85vw;text-align:center;line-height:1.5;
+}
+#gate-lightbox-name strong{display:block;font-size:12px;color:rgba(232,192,96,0.8);margin-bottom:6px;}
+#gate-lightbox-name small{display:block;font-size:10px;color:rgba(212,200,154,0.6);}
+
+/* Analysis JSON in pipeline view */
+#pv-analysis{display:none;}
+#pv-analysis.show{display:block;}
+#gates-grid-wrap{display:block;}
+#gates-grid-wrap.hide{display:none;}
+.pv-json{
+  font-size:10px;color:#8db4d8;line-height:1.7;white-space:pre-wrap;
+  word-break:break-all;background:rgba(0,0,0,0.2);border-radius:5px;padding:10px;
+}
 
 #img-grid{
   flex:1;overflow-y:auto;padding:8px;
@@ -213,10 +330,34 @@ header h1 span{color:var(--warm);}
     </div>
   </header>
 
-  <!-- LEFT: image picker -->
+  <!-- LEFT: image picker + pipeline tab -->
   <aside id="left">
-    <div id="left-head"><h2>Source Images</h2></div>
+    <div id="left-head">
+      <div class="left-tabs">
+        <button class="ltab active" id="tab-images">Images</button>
+        <button class="ltab" id="tab-pipeline">Pipeline</button>
+      </div>
+    </div>
     <div id="img-grid"><div class="no-images">Loading…</div></div>
+    <div id="pipeline-panel">
+      <div class="pl-section">
+        <div class="pl-label">Selected image</div>
+        <div class="pl-selected empty" id="pl-selected-img">No image selected</div>
+      </div>
+      <div class="pl-section">
+        <div class="pl-label">Options</div>
+        <label class="pl-option"><input type="checkbox" id="pl-skip-depth" checked> Skip depth analysis</label>
+        <label class="pl-option"><input type="checkbox" id="pl-skip-blender" checked> Skip Blender rebuild</label>
+        <label class="pl-option"><input type="checkbox" id="pl-use-krea"> Use Krea 3D mesh</label>
+      </div>
+      <button class="pl-run" id="pl-run-btn" disabled>▶ Run Pipeline</button>
+      <div class="pl-status" id="pl-status" style="display:none">
+        <span class="pl-spinner"></span><span id="pl-status-text">Running…</span>
+      </div>
+      <button class="pl-run" id="pl-results-btn" style="background:var(--muted);display:none">
+        ◎ View Last Results
+      </button>
+    </div>
   </aside>
 
   <!-- RIGHT: canvas + log -->
@@ -245,6 +386,28 @@ header h1 span{color:var(--warm);}
         </div>
         <pre id="code-content"></pre>
       </div>
+      <!-- Pipeline results overlay -->
+      <div id="pipeline-view">
+        <div class="pv-head">
+          <div class="pv-title">Pipeline Results</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="pv-tabs">
+              <button class="pvtab active" id="pvtab-gates">Gate Images</button>
+              <button class="pvtab" id="pvtab-analysis">Analysis JSON</button>
+            </div>
+            <button class="tb" id="btn-pv-close">✕ Close</button>
+          </div>
+        </div>
+        <div class="pv-body">
+          <div class="pv-meta">
+            <div class="pv-status" id="pv-status-line">Waiting for pipeline output…</div>
+            <div class="pv-links" id="pv-links"></div>
+          </div>
+          <div id="gates-grid-wrap"><div id="gates-grid"></div></div>
+          <div id="pv-analysis"><pre class="pv-json" id="pv-json-content"></pre></div>
+        </div>
+      </div>
+
       <div id="manual-panel">
         <div class="manual-head">
           <div class="manual-title">AI Regenerate</div>
@@ -253,8 +416,8 @@ header h1 span{color:var(--warm);}
         <div class="manual-steps">
           <strong>1.</strong> Select an image on the left.<br>
           <strong>2.</strong> Copy the prompt from the first box below.<br>
-          <strong>3.</strong> Paste that prompt into ChatGPT with the same image attached.<br>
-          <strong>4.</strong> Paste ChatGPT's full response into the second box below.<br>
+          <strong>3.</strong> Paste that prompt into any AI assistant (ChatGPT, Claude, Gemini) with the same image attached.<br>
+          <strong>4.</strong> Paste the AI's full response into the second box below.<br>
           <strong>5.</strong> Click <strong>Build Scene</strong>.
         </div>
         <div class="manual-grid">
@@ -288,6 +451,11 @@ header h1 span{color:var(--warm);}
   </div>
 </div>
 
+<div id="gate-lightbox">
+  <img id="gate-lightbox-img" src="" alt="">
+  <div id="gate-lightbox-name"></div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -303,6 +471,45 @@ var activeFilename = '';
 var activeBase = '';
 var currentPanel = 'view';
 var sceneDataCache = {};
+
+// ── PIPELINE GATE METADATA ────────────────────────────────────────────────
+var GATE_METADATA = {
+  'gate_3_1_masks_depth': {
+    group: '🔍 Geometric Analysis',
+    title: 'Segmentation + Depth Overlay',
+    description: 'Material regions overlaid on depth map. Verifies segmentation aligns with depth boundaries.'
+  },
+  'gate_3_2_lines_depth': {
+    group: '🔍 Geometric Analysis',
+    title: 'Edge Lines + Depth',
+    description: 'Detected architectural edges overlaid on depth. Validates line detection against depth discontinuities.'
+  },
+  'gate_3_3_depth_per_region': {
+    group: '📊 Depth Analysis',
+    title: 'Mean Depth per Region',
+    description: 'Bar chart showing average depth per material. Roof farthest, doors/windows nearer. Lower = closer to camera.'
+  },
+  'gate_3_4_window_grid': {
+    group: '🪟 Feature Detection',
+    title: 'Window Centroid Grid',
+    description: 'Window positions should form a regular grid. Validates consistent horizontal/vertical alignment.'
+  },
+  'gate_3_5_footprint': {
+    group: '🪟 Feature Detection',
+    title: 'Top-Down Footprint',
+    description: 'Overhead building outline from depth. Left: depth map, Right: footprint to be extruded in Blender.'
+  },
+  'gate_3_6_profiles': {
+    group: '📊 Depth Analysis',
+    title: 'Depth Cross-Sections',
+    description: 'Depth profiles at roof (top), mid-wall (middle), and base (bottom). Shows facade depth variation.'
+  },
+  'gate_3_7_pointcloud': {
+    group: '🌐 3D Visualization',
+    title: 'Interactive Point Cloud',
+    description: 'Downsampled 3D scatter plot. Rotate/zoom to explore. Interactive—click and drag to inspect.'
+  }
+};
 
 // ── LOG HELPERS ───────────────────────────────────────────────────────────
 function ts() {
@@ -538,6 +745,7 @@ function setActiveCard(card) {
     activeFilename = card.dataset.filename || '';
     activeBase = card.dataset.base || '';
   }
+  updatePipelinePanel();
 }
 
 // ── SELECT IMAGE ──────────────────────────────────────────────────────────
@@ -765,7 +973,7 @@ function copyManualPrompt() {
     return;
   }
   navigator.clipboard.writeText(manualAgentPrompt()).then(function() {
-    logOk('AI prompt copied. Paste it into ChatGPT and attach the same image.');
+    logOk('AI prompt copied. Paste it into any AI assistant (ChatGPT, Claude, Gemini) and attach the same image.');
   }).catch(function() {
     logErr('Could not copy prompt automatically.');
   });
@@ -970,7 +1178,336 @@ document.getElementById('log-clear').onclick = function() {
   document.getElementById('log-msgs').innerHTML = '';
 };
 
+// ── LEFT TAB SWITCHER ────────────────────────────────────────────────────
+var leftTab = 'images';
+
+document.getElementById('tab-images').onclick = function() { switchLeftTab('images'); };
+document.getElementById('tab-pipeline').onclick = function() { switchLeftTab('pipeline'); };
+
+function switchLeftTab(tab) {
+  leftTab = tab;
+  document.getElementById('tab-images').classList.toggle('active', tab === 'images');
+  document.getElementById('tab-pipeline').classList.toggle('active', tab === 'pipeline');
+  document.getElementById('img-grid').style.display = tab === 'images' ? '' : 'none';
+  document.getElementById('pipeline-panel').classList.toggle('show', tab === 'pipeline');
+  if (tab === 'pipeline') updatePipelinePanel();
+}
+
+// ── PIPELINE PANEL ───────────────────────────────────────────────────────
+var pipelineLastGates = [];
+var pipelineLastArtifacts = [];
+var pipelineLastAnalysis = null;
+var pipelineStatusPoller = null;
+var pipelineLiveStatus = 'Waiting for pipeline output…';
+
+function updatePipelinePanel() {
+  var sel = document.getElementById('pl-selected-img');
+  if (activeFilename) {
+    sel.textContent = activeFilename;
+    sel.classList.remove('empty');
+    document.getElementById('pl-run-btn').disabled = isPipelineActiveState;
+  } else {
+    sel.textContent = 'No image selected — pick one on the Images tab';
+    sel.classList.add('empty');
+    document.getElementById('pl-run-btn').disabled = true;
+  }
+}
+
+var isPipelineActiveState = false;
+
+function setPipelineRunning(running) {
+  isPipelineActiveState = running;
+  document.getElementById('pl-run-btn').disabled = running || !activeFilename;
+  document.getElementById('pl-status').style.display = running ? 'flex' : 'none';
+  if (running) startPipelinePolling();
+  else stopPipelinePolling();
+}
+
+document.getElementById('pl-run-btn').onclick = function() {
+  if (!activeFilename) { logErr('Select an image first.'); return; }
+  var skipDepth   = document.getElementById('pl-skip-depth').checked;
+  var skipBlender = document.getElementById('pl-skip-blender').checked;
+  var useKrea     = document.getElementById('pl-use-krea').checked;
+
+  document.getElementById('pl-status-text').textContent = 'Starting…';
+  setPipelineRunning(true);
+
+  fetch('/api/pipeline/' + encodeURIComponent(activeFilename), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skipDepth: skipDepth, skipBlender: skipBlender, useKrea: useKrea })
+  }).then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { setPipelineRunning(false); logErr(d.error); }
+    })
+    .catch(function(e) { setPipelineRunning(false); logErr('Pipeline request failed: ' + e.message); });
+};
+
+document.getElementById('pl-results-btn').onclick = function() {
+  showPipelineResults(pipelineLastArtifacts, pipelineLastAnalysis);
+};
+
+// ── PIPELINE RESULTS VIEW ────────────────────────────────────────────────
+var pvCurrentTab = 'gates';
+
+function showPipelineResults(gates, analysis) {
+  pipelineLastArtifacts = gates || [];
+  pipelineLastGates = pipelineLastArtifacts.filter(function(g) {
+    return g.name.indexOf('gate_') === 0;
+  });
+  pipelineLastAnalysis = analysis;
+
+  var grid = document.getElementById('gates-grid');
+  var links = document.getElementById('pv-links');
+  grid.innerHTML = '';
+  links.innerHTML = '';
+
+  // Organize gates by group
+  var gatesByGroup = {};
+  pipelineLastArtifacts.forEach(function(g) {
+    if (g.kind === 'json' || g.url.endsWith('.html')) {
+      var link = document.createElement('a');
+      link.className = 'pv-link';
+      link.href = g.url;
+      link.target = '_blank';
+      link.rel = 'noreferrer';
+      link.textContent = prettyPipelineArtifactName(g.name);
+      links.appendChild(link);
+      return;
+    }
+    if (g.name.indexOf('gate_') !== 0) return;
+
+    var meta = GATE_METADATA[g.name.replace(/\.png$/i, '')];
+    var group = meta ? meta.group : '❓ Other';
+    if (!gatesByGroup[group]) gatesByGroup[group] = [];
+    gatesByGroup[group].push({ gate: g, meta: meta });
+  });
+
+  // Render gates grouped
+  Object.keys(gatesByGroup).sort().forEach(function(groupName) {
+    var groupDiv = document.createElement('div');
+    groupDiv.className = 'gate-group';
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'gate-group-title';
+    titleEl.textContent = groupName;
+    groupDiv.appendChild(titleEl);
+
+    var rowDiv = document.createElement('div');
+    rowDiv.className = 'gate-cards-row';
+
+    gatesByGroup[groupName].forEach(function(item) {
+      var g = item.gate, meta = item.meta;
+      var card = document.createElement('div');
+      card.className = 'gate-card';
+      var info = meta ?
+        '<div class="gate-info">' +
+          '<div class="gate-title">' + meta.title + '</div>' +
+          '<div class="gate-desc">' + meta.description + '</div>' +
+        '</div>' : '';
+      card.innerHTML =
+        '<img src="' + g.url + '?t=' + Date.now() + '" alt="' + g.name + '" loading="lazy">' +
+        info;
+      card.onclick = function() { openLightbox(g.url, g.name); };
+      rowDiv.appendChild(card);
+    });
+    groupDiv.appendChild(rowDiv);
+    grid.appendChild(groupDiv);
+  });
+
+  if (!pipelineLastGates.length) {
+    grid.innerHTML = '<div class="gate-empty">No pipeline images yet. Validation gates will appear here as the pipeline runs.</div>';
+  }
+
+  document.getElementById('pv-json-content').textContent =
+    analysis ? JSON.stringify(analysis, null, 2) : '(no analysis data)';
+  document.getElementById('pv-status-line').textContent = pipelineLiveStatus;
+
+  setPvTab('gates');
+  document.getElementById('pipeline-view').classList.add('show');
+}
+
+function setPvTab(tab) {
+  pvCurrentTab = tab;
+  document.getElementById('pvtab-gates').classList.toggle('active', tab === 'gates');
+  document.getElementById('pvtab-analysis').classList.toggle('active', tab === 'analysis');
+  document.getElementById('gates-grid-wrap').classList.toggle('hide', tab !== 'gates');
+  document.getElementById('pv-analysis').classList.toggle('show', tab === 'analysis');
+}
+
+function prettyPipelineArtifactName(name) {
+  return name
+    .replace(/\.png$/i, '')
+    .replace(/\.json$/i, '')
+    .replace(/gate_\d+_\d+_/, '')
+    .replace(/_/g, ' ');
+}
+
+function refreshPipelineResults() {
+  showPipelineResults(pipelineLastArtifacts, pipelineLastAnalysis);
+}
+
+function syncPipelineStatus(data) {
+  pipelineLastArtifacts = data && data.artifacts ? data.artifacts : [];
+  pipelineLastGates = data && data.gates ? data.gates : [];
+  pipelineLastAnalysis = data ? data.analysis : null;
+  if (data && typeof data.running === 'boolean' && !data.running && pipelineLastArtifacts.length) {
+    pipelineLiveStatus = 'Pipeline idle. Showing latest saved artifacts.';
+  }
+  if (pipelineLastArtifacts.length || pipelineLastAnalysis) {
+    document.getElementById('pl-results-btn').style.display = 'block';
+  }
+  if (document.getElementById('pipeline-view').classList.contains('show')) {
+    refreshPipelineResults();
+  }
+}
+
+function pollPipelineStatus() {
+  fetch('/api/pipeline/status').then(function(r) { return r.json(); }).then(function(d) {
+    syncPipelineStatus(d);
+    if (!d.running) stopPipelinePolling();
+  }).catch(function() {});
+}
+
+function startPipelinePolling() {
+  if (pipelineStatusPoller) return;
+  pollPipelineStatus();
+  pipelineStatusPoller = setInterval(pollPipelineStatus, 2000);
+}
+
+function stopPipelinePolling() {
+  if (!pipelineStatusPoller) return;
+  clearInterval(pipelineStatusPoller);
+  pipelineStatusPoller = null;
+}
+
+document.getElementById('pvtab-gates').onclick = function() { setPvTab('gates'); };
+document.getElementById('pvtab-analysis').onclick = function() { setPvTab('analysis'); };
+document.getElementById('btn-pv-close').onclick = function() {
+  document.getElementById('pipeline-view').classList.remove('show');
+};
+
+// ── LIGHTBOX ─────────────────────────────────────────────────────────────
+function openLightbox(url, name) {
+  document.getElementById('gate-lightbox-img').src = url + '?t=' + Date.now();
+
+  var meta = GATE_METADATA[name.replace(/\.png$/i, '')];
+  var nameEl = document.getElementById('gate-lightbox-name');
+  if (meta) {
+    nameEl.innerHTML = '<strong>' + meta.group + ' — ' + meta.title + '</strong><br>' +
+                       '<small>' + meta.description + '</small>';
+  } else {
+    nameEl.textContent = name;
+  }
+  document.getElementById('gate-lightbox').classList.add('show');
+}
+document.getElementById('gate-lightbox').onclick = function() {
+  this.classList.remove('show');
+};
+
+// ── PIPELINE WEBSOCKET MESSAGES ──────────────────────────────────────────
+function handlePipelineMessage(d) {
+  if (d.type === 'pipeline_start') {
+    logStep('Pipeline started for ' + d.filename);
+    document.getElementById('pl-status-text').textContent = 'Initialising…';
+    document.getElementById('pl-results-btn').style.display = 'none';
+    pipelineLiveStatus = 'Pipeline started. Waiting for first saved artifacts…';
+    pipelineLastArtifacts = [];
+    pipelineLastGates = [];
+    pipelineLastAnalysis = null;
+    if (leftTab === 'pipeline') {
+      showPipelineResults([], null);
+    }
+  }
+  else if (d.type === 'pipeline_phase') {
+    var labels = {1:'2D Analysis',2:'Depth Analysis',3:'Validation Gates',4:'Krea 3D Mesh',5:'Structure Extraction',6:'Blender Rebuild',7:'Export'};
+    var label = labels[d.phase] || ('Phase ' + d.phase);
+    logStep('Phase ' + d.phase + ' — ' + label);
+    document.getElementById('pl-status-text').textContent = 'Phase ' + d.phase + ' — ' + label;
+    pipelineLiveStatus = 'Running Phase ' + d.phase + ' — ' + label;
+    pollPipelineStatus();
+  }
+  else if (d.type === 'pipeline_progress') {
+    pipelineLiveStatus = d.text || ('Phase ' + d.phase + ' still running…');
+    logSys(escHtml(pipelineLiveStatus));
+    if (document.getElementById('pipeline-view').classList.contains('show')) {
+      document.getElementById('pv-status-line').textContent = pipelineLiveStatus;
+    }
+  }
+  else if (d.type === 'pipeline_log') {
+    var text = (d.text || '').trim();
+    if (!text) return;
+    var isWarn = d.level === 'warn';
+    var isSaved = text.indexOf('Saved') !== -1 || text.indexOf('→') !== -1;
+    var isGate  = text.indexOf('[Gate') !== -1;
+    if (isWarn)      addMsg('er',   escHtml(text));
+    else if (isGate) addMsg('ok',   escHtml(text));
+    else if (isSaved)addMsg('ok',   escHtml(text));
+    else             addMsg('sys',  escHtml(text));
+    if (isSaved || isGate) pollPipelineStatus();
+  }
+  else if (d.type === 'pipeline_done') {
+    setPipelineRunning(false);
+    pipelineLiveStatus = 'Pipeline complete. Latest artifacts are shown below.';
+    pipelineLastArtifacts = d.artifacts || d.gates || [];
+    pipelineLastGates = d.gates || [];
+    pipelineLastAnalysis = d.analysis;
+    logOk('Pipeline complete — ' + pipelineLastGates.length + ' gate images');
+    if (d.analysis) {
+      var a = d.analysis;
+      logInfo(
+        '<div class="analysis-card">' +
+          '<div class="ac-title">Pipeline Analysis</div>' +
+          '<div class="ac-row"><span>floors</span><strong>' + (a.floor_count || '?') + '</strong></div>' +
+          '<div class="ac-row"><span>wall height</span><strong>' + (a.wall_height_m || '?') + ' m</strong></div>' +
+          '<div class="ac-row"><span>roof</span><strong>' + (a.roof_type || '?') + ' @ ' + (a.roof_pitch_deg || '?') + '°</strong></div>' +
+          '<div class="ac-row"><span>windows</span><strong>' + ((a.window_positions_3d || []).length) + '</strong></div>' +
+        '</div>'
+      );
+    }
+    document.getElementById('pl-results-btn').style.display = 'block';
+    if (leftTab === 'pipeline') {
+      setTimeout(function() { showPipelineResults(pipelineLastArtifacts, pipelineLastAnalysis); }, 300);
+    }
+  }
+  else if (d.type === 'pipeline_error') {
+    setPipelineRunning(false);
+    pipelineLiveStatus = 'Pipeline failed. See generation log for details.';
+    logErr('Pipeline error: ' + d.message);
+    if (document.getElementById('pipeline-view').classList.contains('show')) {
+      document.getElementById('pv-status-line').textContent = pipelineLiveStatus;
+    }
+  }
+}
+
 connectWS();
+
+// Patch socket to also route pipeline message types
+var _origSocket_onmessage = null;
+(function patchSocket() {
+  var interval = setInterval(function() {
+    if (!socket) return;
+    clearInterval(interval);
+    var orig = socket.onmessage;
+    socket.onmessage = function(e) {
+      var d = JSON.parse(e.data);
+      if (d.type && d.type.indexOf('pipeline') === 0) {
+        handlePipelineMessage(d);
+      } else {
+        orig.call(this, e);
+      }
+    };
+  }, 50);
+})();
+
+// ── PIPELINE STATUS ON LOAD ──────────────────────────────────────────────
+fetch('/api/pipeline/status').then(function(r) { return r.json(); }).then(function(d) {
+  if (d.running) {
+    setPipelineRunning(true);
+    logSys('Pipeline was already running when you connected');
+  }
+  syncPipelineStatus(d);
+}).catch(function() {});
 </script>
 </body>
 </html>
